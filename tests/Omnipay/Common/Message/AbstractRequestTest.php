@@ -2,10 +2,13 @@
 
 namespace Omnipay\Common\Message;
 
+use InvalidArgumentException;
 use Mockery as m;
 use Money\Currency;
 use Money\Money;
 use Omnipay\Common\CreditCard;
+use Omnipay\Common\Exception\InvalidRequestException;
+use Omnipay\Common\Exception\RuntimeException;
 use Omnipay\Common\ItemBag;
 use Omnipay\Tests\TestCase;
 
@@ -14,7 +17,7 @@ class AbstractRequestTest extends TestCase
     /** @var AbstractRequest */
     protected $request;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->request = m::mock('\Omnipay\Common\Message\AbstractRequest')->makePartial();
         $this->request->initialize();
@@ -48,13 +51,14 @@ class AbstractRequestTest extends TestCase
         $this->assertSame('1.23', $this->request->getAmount());
     }
 
-    /**
-     * @expectedException \Omnipay\Common\Exception\RuntimeException
-     * @expectedExceptionMessage Request cannot be modified after it has been sent!
-     */
     public function testInitializeAfterRequestSent()
     {
         $this->request = new AbstractRequestTest_MockAbstractRequest($this->getHttpClient(), $this->getHttpRequest());
+
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Request cannot be modified after it has been sent!');
+
         $this->request->send();
 
         $this->request->initialize();
@@ -120,13 +124,13 @@ class AbstractRequestTest extends TestCase
         $this->assertSame('0.00', $this->request->getAmount());
     }
 
-    /**
-     * @expectedException \Omnipay\Common\Exception\InvalidRequestException
-     * @expectedExceptionMessage A zero amount is not allowed.
-     */
     public function testAmountZeroNotAllowed()
     {
         $this->changeProtectedProperty('zeroAmountAllowed', false);
+
+        $this->expectException(InvalidRequestException::class);
+        $this->expectExceptionMessage('A zero amount is not allowed.');
+
         $this->request->setAmount('0.00');
         $this->request->getAmount();
     }
@@ -163,14 +167,11 @@ class AbstractRequestTest extends TestCase
         $this->assertSame('103500000', $this->request->getAmount());
     }
 
-    /**
-     * @expectedException \Omnipay\Common\Exception\InvalidRequestException
-     *
-     * We still want to catch obvious fractions of the minor units that are
-     * not precision errors at a much lower level.
-     */
     public function testAmountPrecisionTooHigh()
     {
+        $this->expectException(InvalidRequestException::class);
+        $this->expectExceptionMessage('Amount precision is too high for currency.');
+
         $this->assertSame($this->request, $this->request->setAmount('123.005'));
         $this->assertSame('123.005', $this->request->getAmount());
     }
@@ -182,12 +183,12 @@ class AbstractRequestTest extends TestCase
         $this->assertSame('1366', $this->request->getAmount());
     }
 
-    /**
-     * @expectedException \Omnipay\Common\Exception\InvalidRequestException
-     */
     public function testGetAmountNoDecimalsRounding()
     {
         // There will not be any rounding; the amount is sent as requested or not at all.
+        $this->expectException(InvalidRequestException::class);
+        $this->expectExceptionMessage('Amount precision is too high for currency.');
+
         $this->assertSame($this->request, $this->request->setAmount('136.5'));
         $this->assertSame($this->request, $this->request->setCurrency('JPY'));
         $this->request->getAmount();
@@ -219,29 +220,29 @@ class AbstractRequestTest extends TestCase
         $this->assertSame(1366, $this->request->getAmountInteger());
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     */
     public function testAmountThousandsSepThrowsException()
     {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid integer part 1,234. Invalid digit , found');
+
         $this->assertSame($this->request, $this->request->setAmount('1,234.00'));
         $this->request->getAmount();
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     */
     public function testAmountInvalidFormatThrowsException()
     {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid fractional part 234.. Invalid digit . found');
+
         $this->assertSame($this->request, $this->request->setAmount('1.234.00'));
         $this->request->getAmount();
     }
 
-    /**
-     * @expectedException \Omnipay\Common\Exception\InvalidRequestException
-     */
     public function testAmountNegativeStringThrowsException()
     {
+        $this->expectException(InvalidRequestException::class);
+        $this->expectExceptionMessage('A negative amount is not allowed.');
+
         $this->assertSame($this->request, $this->request->setAmount('-123.00'));
         $this->request->getAmount();
     }
@@ -251,6 +252,9 @@ class AbstractRequestTest extends TestCase
      */
     public function testAmountNegativeFloatThrowsException()
     {
+        $this->expectException(InvalidRequestException::class);
+        $this->expectExceptionMessage('A negative amount is not allowed.');
+
         $this->assertSame($this->request, $this->request->setAmount(-123.00));
         $this->request->getAmount();
     }
@@ -423,12 +427,11 @@ class AbstractRequestTest extends TestCase
         $this->assertEquals($expected, $this->request->getParameters());
     }
 
-    /**
-     * @expectedException \Omnipay\Common\Exception\RuntimeException
-     * @expectedExceptionMessage Request cannot be modified after it has been sent!
-     */
     public function testSetParameterAfterRequestSent()
     {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Request cannot be modified after it has been sent!');
+
         $this->request = new AbstractRequestTest_MockAbstractRequest($this->getHttpClient(), $this->getHttpRequest());
         $this->request->send();
 
@@ -457,6 +460,9 @@ class AbstractRequestTest extends TestCase
     {
         $this->request->setTestMode(true);
 
+        $this->expectException(InvalidRequestException::class);
+        $this->expectExceptionMessage('The token parameter is required');
+
         $this->request->validate('testMode', 'token');
     }
 
@@ -476,13 +482,13 @@ class AbstractRequestTest extends TestCase
         $this->assertSame($response, $this->request->send());
     }
 
-    /**
-     * @expectedException \Omnipay\Common\Exception\RuntimeException
-     * @expectedExceptionMessage You must call send() before accessing the Response!
-     */
     public function testGetResponseBeforeRequestSent()
     {
         $this->request = new AbstractRequestTest_MockAbstractRequest($this->getHttpClient(), $this->getHttpRequest());
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('You must call send() before accessing the Response!');
+
         $this->request->getResponse();
     }
 

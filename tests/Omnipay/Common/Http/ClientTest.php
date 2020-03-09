@@ -17,8 +17,8 @@ class ClientTest extends TestCase
     {
         $client = new Client();
 
-        $this->assertAttributeInstanceOf(HttpClient::class, 'httpClient', $client);
-        $this->assertAttributeInstanceOf(RequestFactory::class, 'requestFactory', $client);
+        $this->assertInstanceOf(HttpClient::class, $client->getHttpClient());
+        $this->assertInstanceOf(RequestFactory::class, $client->getRequestFactory());
     }
 
     public function testSend()

@@ -3,6 +3,7 @@
 namespace Omnipay\Common\Message;
 
 use Mockery as m;
+use Omnipay\Common\Exception\RuntimeException;
 use Omnipay\Tests\TestCase;
 
 class AbstractResponseTest extends TestCase
@@ -10,7 +11,7 @@ class AbstractResponseTest extends TestCase
     /** @var  AbstractResponse */
     protected $response;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->response = m::mock('\Omnipay\Common\Message\AbstractResponse')->makePartial();
     }
@@ -40,12 +41,11 @@ class AbstractResponseTest extends TestCase
         $this->assertEquals([], $this->response->getRedirectData());
     }
 
-    /**
-     * @expectedException \Omnipay\Common\Exception\RuntimeException
-     * @expectedExceptionMessage This response does not support redirection.
-     */
     public function testGetRedirectResponseNotImplemented()
     {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('This response does not support redirection.');
+
         $this->response->getRedirectResponse();
     }
 
@@ -58,6 +58,9 @@ class AbstractResponseTest extends TestCase
         $this->response = m::mock('\Omnipay\Common\Message\AbstractResponseTest_MockRedirectResponse')->makePartial();
         $this->response->shouldReceive('isRedirect')->once()->andReturn(false);
 
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('This response does not support redirection.');
+
         $this->response->getRedirectResponse();
     }
 
@@ -69,6 +72,9 @@ class AbstractResponseTest extends TestCase
     {
         $this->response = m::mock('\Omnipay\Common\Message\AbstractResponseTest_MockRedirectResponse')->makePartial();
         $this->response->shouldReceive('getRedirectUrl')->once()->andReturn(null);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('The given redirectUrl cannot be empty.');
 
         $this->response->getRedirectResponse();
     }
@@ -85,7 +91,7 @@ class AbstractResponseTest extends TestCase
         $this->response->redirect();
         $body = ob_get_clean();
 
-        $this->assertContains('Redirecting to https://example.com/redirect?a=1&amp;b=2', $body);
+        $this->assertStringContainsString('Redirecting to https://example.com/redirect?a=1&amp;b=2', $body);
     }
 
     public function testGetRedirectResponseGet()
@@ -107,9 +113,9 @@ class AbstractResponseTest extends TestCase
 
         $httpResponse = $this->response->getRedirectResponse();
         $this->assertSame(200, $httpResponse->getStatusCode());
-        $this->assertContains('<form action="https://example.com/redirect?a=1&amp;b=2" method="post">', $httpResponse->getContent());
-        $this->assertContains('<input type="hidden" name="foo" value="bar" />', $httpResponse->getContent());
-        $this->assertContains('<input type="hidden" name="key&amp;&quot;" value="&lt;value&gt;" />', $httpResponse->getContent());
+        $this->assertStringContainsString('<form action="https://example.com/redirect?a=1&amp;b=2" method="post">', $httpResponse->getContent());
+        $this->assertStringContainsString('<input type="hidden" name="foo" value="bar" />', $httpResponse->getContent());
+        $this->assertStringContainsString('<input type="hidden" name="key&amp;&quot;" value="&lt;value&gt;" />', $httpResponse->getContent());
     }
 
     /**
@@ -120,6 +126,9 @@ class AbstractResponseTest extends TestCase
     {
         $this->response = m::mock('\Omnipay\Common\Message\AbstractResponseTest_MockRedirectResponse')->makePartial();
         $this->response->shouldReceive('getRedirectMethod')->andReturn('DELETE');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Invalid redirect method "DELETE".');
 
         $this->response->getRedirectResponse();
     }

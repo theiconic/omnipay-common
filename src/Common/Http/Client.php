@@ -56,6 +56,16 @@ class Client implements ClientInterface
         return $this->sendRequest($request);
     }
 
+    public function getHttpClient(): HttpClient
+    {
+        return $this->httpClient;
+    }
+
+    public function getRequestFactory(): RequestFactory
+    {
+        return $this->requestFactory;
+    }
+
     /**
      * @param RequestInterface $request
      * @return ResponseInterface
